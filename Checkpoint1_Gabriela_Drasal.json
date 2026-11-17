@@ -1,0 +1,227 @@
+{
+  "name": "Checkpoint1_Gabriela_Drasal",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "id": "a1141e52-da19-4a70-8c77-9015bde23cfa",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        48,
+        320
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "mc1eWupYwlLvh6Y9",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "c971d318-e119-40b8-b0f4-73805c0382f9",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        320
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "streaming"
+        }
+      },
+      "id": "9a1b0721-bc69-47e1-80ce-a0658aa1f6cb",
+      "name": "Chat con Agente -Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -112,
+        0
+      ],
+      "webhookId": "79447c15-c18b-4228-bcb7-22789ff22d80"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Utilizar esta herramienta para verificar los eventos que están agendados en el calendario para responder a las consultas del usuario",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "learnia2027@gmail.com",
+          "mode": "list",
+          "cachedResultName": "learnia2027@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "id": "e21abb2b-8fd3-4a17-b5f6-f03997a71ea0",
+      "name": "Herramienta Consultar Agenda",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        304
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "g72gOy6W6Tr6F78X",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Rol: Sos mi asistente personal.\n\nContexto de horario y fecha: \n\nHoy es {{ $now.setZone('America/Buenos_Aires').toFormat('cccc dd/MM/yyyy HH:mm') }} (hora de Argentina). Cuando te pregunte por un día, consultá la agenda desde las 00:00 hasta las 23:59 de ese día.\n\nTareas de mi asistente: Vas a consultar mi agenda de Google Calendar para darme la información que yo te pida. Me vas a contestar a través del mismo chat por donde yo te pregunto.\nTamaño de la respuesta: La respuesta no tendrá más de 10 palabras. \n\nRespuestas posibles deseadas:  Si te pregunto si una fecha y horario está ocupada, responder \"Está ocupada totalmente\" o \"Está ocupada parcialmente\" y en este caso informame de que hora a que hora está ocupada. \nSi está libre decirme \"Está libre\". \nSi hay un evento indicarme el nombre del Evento y la descripción\n\nGuardrail de seguridad: Solo contestar al chat desde donde te consulté.  {{ $now }}",
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "2aaaa273-f966-4f82-bd6b-dcfff9afcf01",
+      "name": "Asistente de Agenda",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "gdrasal@gmail.com",
+        "subject": "Aviso de error en Agente",
+        "message": "Hubo error en módulo de Agente",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        224
+      ],
+      "id": "a1d57981-8bcb-400b-8a40-545b23cbc2df",
+      "name": "Envia mail si hay error",
+      "webhookId": "1480bb7c-f851-45cb-8bfd-4725d42a041f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9LKXwcj9ncRapHcT",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "gdrasal@gmail.com",
+        "subject": "Reporte de Funcionamiento de Agente1",
+        "message": "=Pregunta: {{ $('Chat con Agente -Trigger').item.json.chatInput }} Respuesta: {{ JSON.stringify($json.output) }}  --- Cadena de pasos --- {{ ($json.intermediateSteps || []).map((s, i) => `Paso ${i+1} Herramienta: ${s.action.tool} Input: ${JSON.stringify(s.action.toolInput)} Razonamiento: ${s.action.log} Resultado: ${typeof s.observation === 'string' ? s.observation : JSON.stringify(s.observation)}` ).join('\\n\\n') || 'El agente no usó herramientas.' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        -16
+      ],
+      "id": "b58dc36d-cd14-4223-b968-8463f9fd0feb",
+      "name": "Envia reporte de Logs",
+      "webhookId": "65190c16-4bbd-4c01-b074-f1fdc64bade8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9LKXwcj9ncRapHcT",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Asistente de Agenda",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Asistente de Agenda",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat con Agente -Trigger": {
+      "main": [
+        [
+          {
+            "node": "Asistente de Agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Herramienta Consultar Agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente de Agenda",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asistente de Agenda": {
+      "main": [
+        [
+          {
+            "node": "Envia reporte de Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envia mail si hay error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ec40bbd3-69ae-4cff-801a-a469cef0ae78",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "40e658fbf2eafacb209592712f6dc7ddebfb907991a1561bff55613a76ce49be"
+  },
+  "nodeGroups": [],
+  "id": "G0eEQwpBVpk1L3Sg",
+  "tags": []
+}
